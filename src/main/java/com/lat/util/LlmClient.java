@@ -10,39 +10,65 @@ import java.net.http.HttpResponse;
 import java.util.Map;
 
 /**
- * Minimal Claude API client using java.net.http (no SDK needed).
- * Set env var ANTHROPIC_API_KEY to go live. Uses the /v1/messages endpoint.
+ * Calls Google Gemini's free API (no cost, no card for the basic tier).
+ * Set env var GEMINI_API_KEY to go live. Get a key at:
+ *   https://aistudio.google.com/apikey
+ *
+ * If the key is missing, isLive() returns false and the app runs in
+ * deterministic mock mode so it still works with zero setup.
  */
 public class LlmClient {
 
     private static final ObjectMapper M = new ObjectMapper();
     private final HttpClient http = HttpClient.newHttpClient();
-    private final String apiKey = System.getenv("ANTHROPIC_API_KEY");
-    private final String model = "claude-sonnet-4-6";
+    private final String apiKey = System.getenv("GEMINI_API_KEY");
+
+    // Free, fast, capable model on the free tier.
+    private final String model = "gemini-2.0-flash";
 
     public boolean isLive() { return apiKey != null && !apiKey.isBlank(); }
 
-    /** Send a single-user-message prompt, return the model's text. */
+    /** Send a single prompt, return the model's text answer. */
     public String complete(String prompt) throws Exception {
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/"
+                + model + ":generateContent?key=" + apiKey;
+
+        // Gemini request shape: contents[].parts[].text, plus low temperature
+        // for consistent scoring.
         Map<String, Object> body = Map.of(
-                "model", model,
-                "max_tokens", 2000,
-                "messages", new Object[]{ Map.of("role", "user", "content", prompt) }
+                "contents", new Object[]{
+                        Map.of("parts", new Object[]{ Map.of("text", prompt) })
+                },
+                "generationConfig", Map.of(
+                        "temperature", 0.2,
+                        "maxOutputTokens", 2048
+                )
         );
+
         HttpRequest req = HttpRequest.newBuilder()
-                .uri(URI.create("https://api.anthropic.com/v1/messages"))
-                .header("x-api-key", apiKey)
-                .header("anthropic-version", "2023-06-01")
+                .uri(URI.create(url))
                 .header("content-type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(M.writeValueAsString(body)))
                 .build();
+
         HttpResponse<String> resp = http.send(req, HttpResponse.BodyHandlers.ofString());
+
+        if (resp.statusCode() != 200) {
+            throw new RuntimeException("Gemini API error " + resp.statusCode()
+                    + ": " + resp.body());
+        }
+
         JsonNode root = M.readTree(resp.body());
-        // response text lives at content[0].text
-        return root.path("content").path(0).path("text").asText();
+        // answer lives at candidates[0].content.parts[0].text
+        JsonNode textNode = root.path("candidates").path(0)
+                .path("content").path("parts").path(0).path("text");
+        if (textNode.isMissingNode()) {
+            throw new RuntimeException("Unexpected Gemini response: " + resp.body());
+        }
+        return textNode.asText();
     }
 
-    /** Strip ```json fences an LLM sometimes adds despite instructions. */
+    /** Strip ```json fences the model sometimes adds despite instructions. */
     public static String stripFences(String s) {
         return s.strip()
                 .replaceAll("(?m)^```(json)?", "")
