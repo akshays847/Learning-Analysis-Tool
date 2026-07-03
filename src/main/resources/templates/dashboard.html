@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analysis Results</title>
+  <style>
+    :root{
+      --ink:#1a2233; --muted:#5b6577; --line:#e2e6ee;
+      --accent:#3b5bdb; --accent-soft:#eef2ff; --bg:#f7f8fb; --card:#fff;
+      --good:#2f9e6f; --gap:#e08a2b; --bad:#d64545;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);
+      color:var(--ink);line-height:1.5}
+    .wrap{max-width:960px;margin:0 auto;padding:48px 24px}
+    .top{display:flex;justify-content:space-between;align-items:flex-end;
+      margin-bottom:8px;flex-wrap:wrap;gap:16px}
+    h1{font-size:1.7rem;margin:0;letter-spacing:-.02em}
+    .avg{color:var(--muted);font-size:.95rem}
+    .avg b{color:var(--accent);font-size:1.4rem}
+    .actions a{display:inline-block;text-decoration:none;font-weight:600;font-size:.9rem;
+      padding:10px 18px;border-radius:9px;margin-left:8px}
+    .btn-primary{background:var(--accent);color:#fff}
+    .btn-ghost{background:#fff;color:var(--accent);border:1px solid var(--line)}
+    h2{font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+      margin:40px 0 14px;font-weight:700}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+      padding:20px 22px;margin-bottom:14px}
+    .srow{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+    .sname{font-weight:700;font-size:1.05rem}
+    .pct{font-weight:700;font-variant-numeric:tabular-nums}
+    .bar{height:9px;background:#eef1f6;border-radius:6px;overflow:hidden;margin-bottom:14px}
+    .bar > i{display:block;height:100%;border-radius:6px}
+    .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+    .tag{font-size:.78rem;padding:3px 10px;border-radius:20px;font-weight:600}
+    .t-str{background:#e6f5ee;color:var(--good)}
+    .t-gap{background:#fdf1e1;color:var(--gap)}
+    .t-cur{background:var(--accent-soft);color:var(--accent)}
+    .lbl{font-size:.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;
+      letter-spacing:.06em;margin:12px 0 4px}
+    .weak li{margin-bottom:8px}
+    .weak b{color:var(--bad)}
+    .concepts{display:flex;flex-wrap:wrap;gap:6px}
+    .cchip{background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 12px;
+      font-size:.85rem}
+    .cchip small{color:var(--muted)}
+    a.back{color:var(--muted);text-decoration:none;font-size:.9rem}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <a class="back" href="/">← New analysis</a>
+        <h1>Session analysis</h1>
+      </div>
+      <div style="display:flex;align-items:center;gap:20px">
+        <div class="avg">Class average <b th:text="${classAvg} + '%'">0%</b></div>
+        <div class="actions">
+          <a class="btn-primary" href="/export.xlsx">Export Excel</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Concepts taught -->
+    <h2>Concepts taught (ground truth)</h2>
+    <div class="card">
+      <div class="concepts">
+        <div class="cchip" th:each="c : ${concepts}">
+          <span th:text="${c.concept()}">Concept</span>
+          <small th:text="'· ' + ${c.type()}">type</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Per-student -->
+    <h2>Student understanding</h2>
+    <div class="card" th:each="r : ${reports}">
+      <div class="srow">
+        <span class="sname" th:text="${r.student()}">Name</span>
+        <span class="pct"
+              th:text="${r.coveragePct()} + '%'"
+              th:style="'color:' + (${r.coveragePct()} >= 60 ? 'var(--good)' : (${r.coveragePct()} >= 30 ? 'var(--gap)' : 'var(--bad)'))">0%</span>
+      </div>
+      <div class="bar">
+        <i th:style="'width:' + ${r.coveragePct()} + '%;background:' +
+             (${r.coveragePct()} >= 60 ? 'var(--good)' : (${r.coveragePct()} >= 30 ? 'var(--gap)' : 'var(--bad)'))"></i>
+      </div>
+
+      <div th:if="${!r.strengths().isEmpty()}">
+        <div class="lbl">Strengths</div>
+        <div class="tags">
+          <span class="tag t-str" th:each="s : ${r.strengths()}" th:text="${s}">s</span>
+        </div>
+      </div>
+      <div th:if="${!r.gaps().isEmpty()}">
+        <div class="lbl">Gaps</div>
+        <div class="tags">
+          <span class="tag t-gap" th:each="g : ${r.gaps()}" th:text="${g}">g</span>
+        </div>
+      </div>
+      <div th:if="${!r.curiosity().isEmpty()}">
+        <div class="lbl">Curiosity (beyond syllabus)</div>
+        <div class="tags">
+          <span class="tag t-cur" th:each="c : ${r.curiosity()}" th:text="${c}">c</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Class weak spots -->
+    <h2>Class weak spots (teaching signal)</h2>
+    <div class="card weak">
+      <ul>
+        <li th:each="w : ${weakSpots}">
+          <span th:text="${w.getKey()}">concept</span> —
+          missed by <b th:text="${w.getValue()}">0</b>
+          <span th:text="${w.getValue() == 1 ? 'student' : 'students'}">students</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Learning Analysis Tool</title>
+  <style>
+    :root{
+      --ink:#1a2233; --muted:#5b6577; --line:#e2e6ee;
+      --accent:#3b5bdb; --accent-soft:#eef2ff; --bg:#f7f8fb; --card:#ffffff;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+      background:var(--bg);color:var(--ink);line-height:1.55}
+    .wrap{max-width:680px;margin:0 auto;padding:64px 24px}
+    .eyebrow{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;
+      color:var(--accent);font-weight:700;margin-bottom:12px}
+    h1{font-size:2.1rem;margin:0 0 8px;letter-spacing:-.02em}
+    .sub{color:var(--muted);margin:0 0 40px;font-size:1.05rem}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+      padding:32px;box-shadow:0 1px 3px rgba(20,30,60,.04)}
+    label{display:block;font-weight:600;margin:0 0 6px;font-size:.92rem}
+    .hint{color:var(--muted);font-size:.82rem;margin:0 0 8px}
+    input[type=file]{width:100%;padding:14px;border:1.5px dashed var(--line);
+      border-radius:10px;background:#fafbff;margin-bottom:24px;cursor:pointer}
+    button{background:var(--accent);color:#fff;border:0;padding:14px 28px;
+      border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;width:100%}
+    button:hover{background:#2f4bc4}
+    .flow{display:flex;gap:8px;margin-top:32px;font-size:.8rem;color:var(--muted);
+      flex-wrap:wrap;align-items:center}
+    .flow span{background:var(--accent-soft);color:var(--accent);padding:4px 10px;
+      border-radius:6px;font-weight:600}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="eyebrow">Understand · Analyze · Elevate</div>
+    <h1>Learning Analysis Tool</h1>
+    <p class="sub">Compare what was taught in a session against what each student actually understood.</p>
+
+    <div class="card">
+      <form action="/analyze" method="post" enctype="multipart/form-data">
+        <label for="lesson">Lesson content</label>
+        <p class="hint">Teacher's Word doc (.docx) or a session transcript (.txt).</p>
+        <input type="file" id="lesson" name="lesson" accept=".docx,.txt" required>
+
+        <label for="chat">Meet chat export</label>
+        <p class="hint">The chat .txt Google Meet saves to Drive when the session is recorded.</p>
+        <input type="file" id="chat" name="chat" accept=".txt" required>
+
+        <button type="submit">Analyze session</button>
+      </form>
+
+      <div class="flow">
+        <span>Extract concepts</span> →
+        <span>Parse chat</span> →
+        <span>Assess understanding</span> →
+        <span>Report</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
